@@ -4,289 +4,222 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CityBus Live</title>
+<title>Mangaluru City Bus Tracking</title>
 
-<link rel="stylesheet"
-href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
 <style>
 *{box-sizing:border-box}
-body{
- margin:0;
- font-family:Arial,sans-serif;
- background:#f1f5f9;
- color:#172033;
-}
-header{
- background:#092c4c;
- color:white;
- padding:25px 15px;
- text-align:center;
-}
-header h1{margin:0;font-size:27px}
-header p{color:#cbd5e1}
-.container{
- max-width:850px;
- margin:20px auto;
- padding:12px;
-}
-.card{
- background:white;
- padding:20px;
- border-radius:15px;
- margin-bottom:18px;
- box-shadow:0 3px 12px #0001;
-}
-h2{font-size:19px}
-input{
- width:100%;
- padding:14px;
- border:1px solid #cbd5e1;
- border-radius:8px;
- margin:10px 0;
- font-size:16px;
-}
-button{
- width:100%;
- padding:14px;
- border:0;
- border-radius:8px;
- background:#078653;
- color:white;
- font-size:15px;
- font-weight:bold;
- margin:6px 0;
-}
-.stop{background:#dc2626}
-.search{background:#2563eb}
-#map{
- height:380px;
- border-radius:12px;
-}
-.status{
- background:#e0f2fe;
- padding:13px;
- border-radius:8px;
- margin-top:12px;
- font-size:14px;
-}
-.details{
- line-height:2;
- font-size:14px;
- overflow-wrap:anywhere;
-}
-footer{
- text-align:center;
- padding:20px;
- color:#64748b;
-}
+body{margin:0;font-family:Arial;background:#f1f5f9;color:#172033}
+header{background:#075e45;color:white;padding:22px 15px;text-align:center}
+header h1{margin:0;font-size:25px}
+header p{margin:8px 0 0}
+nav{display:flex;flex-wrap:wrap;justify-content:center;background:#064e3b}
+nav a{color:white;padding:13px;text-decoration:none;font-size:14px}
+nav a:hover{background:#087b57}
+.container{max-width:1000px;margin:auto;padding:15px}
+.card{background:white;padding:18px;border-radius:12px;margin:15px 0;box-shadow:0 2px 9px #0001}
+h2{color:#087653;margin-top:0}
+input,select{width:100%;padding:12px;margin:7px 0;border:1px solid #ccd3dc;border-radius:7px;font-size:15px}
+button{background:#078451;color:white;border:0;padding:12px 18px;border-radius:7px;font-size:15px;margin:5px 0;cursor:pointer}
+button:hover{background:#05643d}
+.secondary{background:#475569}
+.result{background:#ecfdf5;padding:12px;border-radius:8px;margin-top:12px}
+.route{border-bottom:1px solid #ddd;padding:12px 0}
+.route b{color:#087653}
+#map{height:350px;border-radius:10px}
+footer{text-align:center;background:#064e3b;color:white;padding:20px;margin-top:25px}
+.small{font-size:13px;color:#64748b}
 </style>
 </head>
 
 <body>
 
 <header>
-<h1>🚌 CITY BUS LIVE</h1>
-<p>Live Bus Tracking & Route Information</p>
+<h1>🚌 Mangaluru City Bus Tracking</h1>
+<p>Live Bus Location | Routes | Timings | Driver Details</p>
 </header>
+
+<nav>
+<a href="#finder">Best Route</a>
+<a href="#routes">Bus Routes</a>
+<a href="#driver">Driver</a>
+<a href="#gps">Live GPS</a>
+<a href="#timings">Timings</a>
+</nav>
 
 <div class="container">
 
-<div class="card">
-<h2>🚍 Driver Dashboard</h2>
-<p>Enter your bus number</p>
+<section class="card" id="finder">
+<h2>🔎 Best Bus Route Finder</h2>
+<label>Starting Point</label>
+<input id="from" placeholder="Example: State Bank">
+<label>Destination</label>
+<input id="to" placeholder="Example: Ladyhill">
+<button onclick="findRoute()">Find Best Route</button>
+<div id="answer"></div>
+</section>
 
-<input id="driverBus" placeholder="Example: 45D">
+<section class="card" id="routes">
+<h2>🚌 Mangaluru Bus Routes</h2>
+<input id="search" placeholder="Search bus number or bus stop..." oninput="showRoutes()">
+<div id="routeList"></div>
+</section>
 
-<button onclick="startGPS()">START GPS TRACKING</button>
-<button class="stop" onclick="stopGPS()">STOP TRACKING</button>
+<section class="card" id="driver">
+<h2>👨‍✈️ Bus Driver Details</h2>
+<p><b>Driver Name:</b> Dinesh</p>
+<p><b>Driver ID:</b> Not provided</p>
+<p><b>Bus Number:</b> Not assigned</p>
+<p><b>Phone Number:</b> Not provided</p>
+<p class="small">Add verified driver and contact details before publishing.</p>
+</section>
 
-<div class="status" id="driverStatus">
-GPS is currently stopped.
-</div>
-</div>
-
-<div class="card">
-<h2>🔍 Find Your Bus</h2>
-
-<input id="searchBus" placeholder="Enter bus number">
-
-<button class="search" onclick="searchGPS()">
-SEARCH BUS
-</button>
-
-<div class="details" id="busInfo">
-Search for a bus to see its location.
-</div>
-</div>
-
-<div class="card">
-<h2>📍 Live Bus Location</h2>
-
+<section class="card" id="gps">
+<h2>📍 Live GPS Tracking</h2>
+<p>Allow location access to display the current device location.</p>
+<button onclick="startGPS()">Start GPS</button>
+<button class="secondary" onclick="stopGPS()">Stop GPS</button>
+<p id="gpsStatus">GPS not started</p>
 <div id="map"></div>
+<p class="small">This starter version displays the location of the device running it. Sharing a driver's GPS with passengers requires a connected database.</p>
+</section>
 
-<div class="status" id="mapStatus">
-Waiting for location...
-</div>
-</div>
+<section class="card" id="timings">
+<h2>🕒 Bus Timings</h2>
+<p>Bus departure and arrival times will be displayed here.</p>
+<p class="small">Verified timetable data has not yet been supplied. Add actual timings before using this as a travel schedule.</p>
+</section>
 
 </div>
 
 <footer>
-CITY BUS LIVE © 2026
+<p>© 2026 Mangaluru City Bus Tracking System</p>
+<p>Smart Bus Route Information</p>
 </footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
+// Bus route data transcribed from the supplied route screenshots.
+// Add the remaining verified routes to this list.
 
-// MAP SETUP
+const routes = [
+{bus:"1",stops:["State Bank","Car Street","Mannagudda","Ladyhill","Chilimbi","Urva Stores","Kavoor","MCC Colony","Kunjathbail"]},
+{bus:"1A",stops:["State Bank","Lalbagh","Urva Stores","Kulur","Thannir Bavi"]},
+{bus:"1B",stops:["State Bank","Car Street","Mannagudda","Ladyhill","Chilimbi","Urva Stores","Kodikal"]},
+{bus:"2",stops:["State Bank","Lalbagh","Ashoknagar","Baikampady","Surathkal","Mulki"]},
+{bus:"2A",stops:["State Bank","Lalbagh","Ashoknagar","Baikampady","Surathkal","Mulka","Sasihithlu"]},
+{bus:"2C",stops:["State Bank","Lalbagh","Ashoknagar","Baikampady","Baikampady Industrial Estate","Jokatte"]},
+{bus:"3",stops:["State Bank","Falnir","Bendoorwell","Mallikatte","Kadri","Bikarnakatte","Kulsh ekar","Kudupu","Vamanjoor","Moodushedde"]},
+{bus:"3A",stops:["State Bank","Jyothi","Bendoorwell","Mallikatte","Kadri","Bikarnakatte","Kulshekar","Kudupu","Vamanjoor","Moodushedde"]},
+{bus:"3B",stops:["Mangaladevi","Kankanady","Mallikatte","Kadri","Bikarnakatte","Kulshekar","Kudupu","Vamanjoor","Moodushedde"]},
+{bus:"5",stops:["State Bank","Jyothi","Bendoorwell","Kankanady","Nandigudda","Marmanikatta","Morgan Gate"]},
+{bus:"6A",stops:["State Bank","Jyothi","Bendoorwell","Mallikatte","Kadri","Bikarnakatte","Kulshekar","Shaktinagar"]},
+{bus:"7",stops:["State Bank","Car Street","Alake","Mannagudda","Ladyhill","Chilimbi","Urva Stores"]},
+{bus:"9A",stops:["State Bank","Pandeshwar","Jeppu","Morgan Gate","Jeppina Mogaru","Bajal","Bajal Pakkaladka","J.M. Road"]},
+{bus:"9B",stops:["State Bank","Jyothi","Pumpwell","Ekkur","Mugeru","Bajal","Bajal Pakkaladka","J.M. Road"]},
+{bus:"13",stops:["State Bank","Car Street","Mannagudda","Ladyhill","Chilimbi","Urva Stores"]},
+{bus:"13A",stops:["State Bank","Car Street","Mannagudda","Ladyhill","Chilimbi","Urva Stores","Kottara"]},
+{bus:"14A",stops:["State Bank","Jyothi","Bendoorwell","Mallikatte","Kadri","Nanthoor","Akashavani","K.P.T","Yeyyadi","Konchadi","Padanagady","Bondel"]},
+{bus:"15",stops:["Mangaladevi","Morgan Gate","Nandigudda","Kankanady","Mallikatte","Kadri","Market","Lalbagh","Ladyhill","Kuloor","Baikampady","Surathkal"]},
+{bus:"16",stops:["State Bank","Mission Street","Azizuddin Road","Kandathpalli","Mandi","Gokarnath Temple","Kudroli","Bokkapatna","Boloor","Sulthan Battery"]},
+{bus:"18",stops:["State Bank","Pandeshwar","Hoige Bazar","Bolar","Jeppu Market","Morgan Gate"]},
+{bus:"21",stops:["State Bank","Jyothi","Bunts Hostel","Mallikatte","Kadri","Nanthoor","Bikarnakatte","Kulshekar","Kaikamba","Neermarga"]},
+{bus:"30",stops:["State Bank","Jyothi","Balmata","Kankanady","Mallikatte","Kadri","Nanthoor","Bikarnakatte","Maroli","Padil"]},
+{bus:"31",stops:["State Bank","PVS","Canara College","Empire Mall","Ballalbagh","Mannagudda","Urva Market","Shaktinagar"]}
+];
 
-const map=L.map('map').setView([12.9141,74.8560],13);
+function showRoutes(){
+ const q=document.getElementById("search").value.toLowerCase();
+ const list=routes.filter(r=>
+ r.bus.toLowerCase().includes(q) ||
+ r.stops.join(" ").toLowerCase().includes(q)
+ );
+ document.getElementById("routeList").innerHTML=list.map(r=>
+ `<div class="route"><b>Bus ${r.bus}</b><br>${r.stops.join(" → ")}</div>`
+ ).join("") || "No matching bus route found.";
+}
 
-L.tileLayer(
-'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-{
-attribution:'© OpenStreetMap'
+function findRoute(){
+ const from=document.getElementById("from").value.trim().toLowerCase();
+ const to=document.getElementById("to").value.trim().toLowerCase();
+ const output=document.getElementById("answer");
+
+ if(!from || !to){
+ output.innerHTML="Please enter both starting point and destination.";
+ return;
+ }
+
+ if(from===to){
+ output.innerHTML="Starting point and destination are the same.";
+ return;
+ }
+
+ const direct=routes.filter(r=>{
+ const a=r.stops.findIndex(s=>s.toLowerCase()===from);
+ const b=r.stops.findIndex(s=>s.toLowerCase()===to);
+ return a!==-1 && b>a;
+ });
+
+ if(direct.length){
+ output.innerHTML="<h3>Direct Bus Options</h3>"+direct.map(r=>
+ `<div class="result"><b>Bus ${r.bus}</b><br>${r.stops.join(" → ")}</div>`
+ ).join("");
+ return;
+ }
+
+ output.innerHTML="<p>No direct bus found in the currently entered routes. Please check the stop spelling or try another route.</p>";
+}
+
+showRoutes();
+
+// Map setup
+const map=L.map('map').setView([12.9141,74.8560],12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+ attribution:'© OpenStreetMap'
 }).addTo(map);
 
 let marker=null;
 let watchId=null;
-let currentBus="";
-let lastLocation=null;
-
-// START GPS
 
 function startGPS(){
+ if(!navigator.geolocation){
+ document.getElementById("gpsStatus").innerText="GPS is not supported.";
+ return;
+ }
 
-const bus=document.getElementById("driverBus")
-.value.trim().toUpperCase();
+ if(watchId!==null) return;
 
-if(!bus){
-alert("Enter Bus Number");
-return;
+ watchId=navigator.geolocation.watchPosition(position=>{
+ const lat=position.coords.latitude;
+ const lon=position.coords.longitude;
+
+ if(marker){
+ marker.setLatLng([lat,lon]);
+ }else{
+ marker=L.marker([lat,lon]).addTo(map)
+ .bindPopup("Current Device Location");
+ }
+
+ map.setView([lat,lon],16);
+ document.getElementById("gpsStatus").innerText=
+ "GPS Active | Latitude: "+lat.toFixed(5)+
+ " | Longitude: "+lon.toFixed(5);
+
+ },error=>{
+ document.getElementById("gpsStatus").innerText=
+ "Location error: "+error.message;
+ },{enableHighAccuracy:true});
 }
-
-if(!navigator.geolocation){
-alert("GPS not supported");
-return;
-}
-
-if(watchId!==null){
-navigator.geolocation.clearWatch(watchId);
-}
-
-currentBus=bus;
-
-document.getElementById("driverStatus").innerText=
-"Requesting GPS permission...";
-
-watchId=navigator.geolocation.watchPosition(
-
-function(position){
-
-const lat=position.coords.latitude;
-const lng=position.coords.longitude;
-
-lastLocation={
-bus:currentBus,
-latitude:lat,
-longitude:lng,
-time:new Date().toLocaleTimeString()
-};
-
-showBus(lastLocation);
-
-document.getElementById("driverStatus").innerText=
-"GPS Active! Bus "+currentBus+
-" | Accuracy: "+Math.round(position.coords.accuracy)+" metres";
-
-},
-
-function(error){
-
-document.getElementById("driverStatus").innerText=
-"GPS Error: "+error.message;
-
-},
-
-{
-enableHighAccuracy:true,
-maximumAge:0,
-timeout:20000
-}
-
-);
-
-}
-
-// DISPLAY BUS
-
-function showBus(data){
-
-const position=[
-data.latitude,
-data.longitude
-];
-
-if(!marker){
-marker=L.marker(position).addTo(map);
-}else{
-marker.setLatLng(position);
-}
-
-marker.bindPopup("🚌 Bus "+data.bus);
-
-map.setView(position,16);
-
-document.getElementById("busInfo").innerHTML=
-"<b>Bus Number:</b> "+data.bus+
-"<br><b>Latitude:</b> "+data.latitude.toFixed(6)+
-"<br><b>Longitude:</b> "+data.longitude.toFixed(6)+
-"<br><b>Last Updated:</b> "+data.time;
-
-document.getElementById("mapStatus").innerText=
-"Bus location displayed on map.";
-
-}
-
-// SEARCH BUS
-
-function searchGPS(){
-
-const bus=document.getElementById("searchBus")
-.value.trim().toUpperCase();
-
-if(!bus){
-alert("Enter bus number");
-return;
-}
-
-if(lastLocation && lastLocation.bus===bus){
-showBus(lastLocation);
-}else{
-document.getElementById("busInfo").innerText=
-"No location available. Driver GPS must be active on this device.";
-document.getElementById("mapStatus").innerText=
-"Waiting for bus location.";
-}
-
-}
-
-// STOP GPS
 
 function stopGPS(){
-
-if(watchId!==null){
-navigator.geolocation.clearWatch(watchId);
-watchId=null;
+ if(watchId!==null){
+ navigator.geolocation.clearWatch(watchId);
+ watchId=null;
+ }
+ document.getElementById("gpsStatus").innerText="GPS stopped";
 }
-
-document.getElementById("driverStatus").innerText=
-"GPS Tracking Stopped.";
-
-}
-
 </script>
 
 </body>
