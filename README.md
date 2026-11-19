@@ -1,2 +1,2 @@
-# citybus-live-tracking
-Live Bus Tracking and Route Information System
+#campus navigation 
+ to explore the campus 
