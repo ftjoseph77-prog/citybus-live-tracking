@@ -1,0 +1,293 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CityBus Live</title>
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;
+ font-family:Arial,sans-serif;
+ background:#f1f5f9;
+ color:#172033;
+}
+header{
+ background:#092c4c;
+ color:white;
+ padding:25px 15px;
+ text-align:center;
+}
+header h1{margin:0;font-size:27px}
+header p{color:#cbd5e1}
+.container{
+ max-width:850px;
+ margin:20px auto;
+ padding:12px;
+}
+.card{
+ background:white;
+ padding:20px;
+ border-radius:15px;
+ margin-bottom:18px;
+ box-shadow:0 3px 12px #0001;
+}
+h2{font-size:19px}
+input{
+ width:100%;
+ padding:14px;
+ border:1px solid #cbd5e1;
+ border-radius:8px;
+ margin:10px 0;
+ font-size:16px;
+}
+button{
+ width:100%;
+ padding:14px;
+ border:0;
+ border-radius:8px;
+ background:#078653;
+ color:white;
+ font-size:15px;
+ font-weight:bold;
+ margin:6px 0;
+}
+.stop{background:#dc2626}
+.search{background:#2563eb}
+#map{
+ height:380px;
+ border-radius:12px;
+}
+.status{
+ background:#e0f2fe;
+ padding:13px;
+ border-radius:8px;
+ margin-top:12px;
+ font-size:14px;
+}
+.details{
+ line-height:2;
+ font-size:14px;
+ overflow-wrap:anywhere;
+}
+footer{
+ text-align:center;
+ padding:20px;
+ color:#64748b;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>🚌 CITY BUS LIVE</h1>
+<p>Live Bus Tracking & Route Information</p>
+</header>
+
+<div class="container">
+
+<div class="card">
+<h2>🚍 Driver Dashboard</h2>
+<p>Enter your bus number</p>
+
+<input id="driverBus" placeholder="Example: 45D">
+
+<button onclick="startGPS()">START GPS TRACKING</button>
+<button class="stop" onclick="stopGPS()">STOP TRACKING</button>
+
+<div class="status" id="driverStatus">
+GPS is currently stopped.
+</div>
+</div>
+
+<div class="card">
+<h2>🔍 Find Your Bus</h2>
+
+<input id="searchBus" placeholder="Enter bus number">
+
+<button class="search" onclick="searchGPS()">
+SEARCH BUS
+</button>
+
+<div class="details" id="busInfo">
+Search for a bus to see its location.
+</div>
+</div>
+
+<div class="card">
+<h2>📍 Live Bus Location</h2>
+
+<div id="map"></div>
+
+<div class="status" id="mapStatus">
+Waiting for location...
+</div>
+</div>
+
+</div>
+
+<footer>
+CITY BUS LIVE © 2026
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+// MAP SETUP
+
+const map=L.map('map').setView([12.9141,74.8560],13);
+
+L.tileLayer(
+'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+{
+attribution:'© OpenStreetMap'
+}).addTo(map);
+
+let marker=null;
+let watchId=null;
+let currentBus="";
+let lastLocation=null;
+
+// START GPS
+
+function startGPS(){
+
+const bus=document.getElementById("driverBus")
+.value.trim().toUpperCase();
+
+if(!bus){
+alert("Enter Bus Number");
+return;
+}
+
+if(!navigator.geolocation){
+alert("GPS not supported");
+return;
+}
+
+if(watchId!==null){
+navigator.geolocation.clearWatch(watchId);
+}
+
+currentBus=bus;
+
+document.getElementById("driverStatus").innerText=
+"Requesting GPS permission...";
+
+watchId=navigator.geolocation.watchPosition(
+
+function(position){
+
+const lat=position.coords.latitude;
+const lng=position.coords.longitude;
+
+lastLocation={
+bus:currentBus,
+latitude:lat,
+longitude:lng,
+time:new Date().toLocaleTimeString()
+};
+
+showBus(lastLocation);
+
+document.getElementById("driverStatus").innerText=
+"GPS Active! Bus "+currentBus+
+" | Accuracy: "+Math.round(position.coords.accuracy)+" metres";
+
+},
+
+function(error){
+
+document.getElementById("driverStatus").innerText=
+"GPS Error: "+error.message;
+
+},
+
+{
+enableHighAccuracy:true,
+maximumAge:0,
+timeout:20000
+}
+
+);
+
+}
+
+// DISPLAY BUS
+
+function showBus(data){
+
+const position=[
+data.latitude,
+data.longitude
+];
+
+if(!marker){
+marker=L.marker(position).addTo(map);
+}else{
+marker.setLatLng(position);
+}
+
+marker.bindPopup("🚌 Bus "+data.bus);
+
+map.setView(position,16);
+
+document.getElementById("busInfo").innerHTML=
+"<b>Bus Number:</b> "+data.bus+
+"<br><b>Latitude:</b> "+data.latitude.toFixed(6)+
+"<br><b>Longitude:</b> "+data.longitude.toFixed(6)+
+"<br><b>Last Updated:</b> "+data.time;
+
+document.getElementById("mapStatus").innerText=
+"Bus location displayed on map.";
+
+}
+
+// SEARCH BUS
+
+function searchGPS(){
+
+const bus=document.getElementById("searchBus")
+.value.trim().toUpperCase();
+
+if(!bus){
+alert("Enter bus number");
+return;
+}
+
+if(lastLocation && lastLocation.bus===bus){
+showBus(lastLocation);
+}else{
+document.getElementById("busInfo").innerText=
+"No location available. Driver GPS must be active on this device.";
+document.getElementById("mapStatus").innerText=
+"Waiting for bus location.";
+}
+
+}
+
+// STOP GPS
+
+function stopGPS(){
+
+if(watchId!==null){
+navigator.geolocation.clearWatch(watchId);
+watchId=null;
+}
+
+document.getElementById("driverStatus").innerText=
+"GPS Tracking Stopped.";
+
+}
+
+</script>
+
+</body>
+</html>
