@@ -4,6 +4,366 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AJIET Campus Navigation</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;
+ font-family:Arial,sans-serif;
+ background:#f1f5f9;
+ color:#172033;
+}
+header{
+ background:#075b42;
+ color:white;
+ padding:25px 15px;
+ text-align:center;
+}
+header h1{margin:0;font-size:25px}
+header p{font-size:14px}
+nav{
+ background:#06452f;
+ padding:12px;
+ text-align:center;
+}
+nav a{color:white;text-decoration:none;padding:8px}
+.container{max-width:900px;margin:auto;padding:15px}
+.card{
+ background:white;
+ border-radius:13px;
+ padding:18px;
+ margin:15px 0;
+ box-shadow:0 3px 10px #0001;
+}
+h2{color:#087650}
+input,select{
+ width:100%;
+ padding:13px;
+ margin:8px 0;
+ border:1px solid #cbd5e1;
+ border-radius:8px;
+ font-size:15px;
+}
+button{
+ background:#07834f;
+ color:white;
+ border:0;
+ padding:12px 17px;
+ border-radius:8px;
+ cursor:pointer;
+ font-size:15px;
+}
+button.secondary{background:#475569}
+button:disabled{opacity:.5}
+#map{
+ height:350px;
+ border-radius:10px;
+}
+.place{
+ padding:13px;
+ border-bottom:1px solid #e2e8f0;
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ gap:8px;
+}
+.place button{font-size:12px;padding:9px}
+.icon{font-size:23px}
+.small{font-size:13px;color:#64748b}
+#status{color:#087650;font-size:14px}
+footer{
+ text-align:center;
+ padding:20px;
+ background:#06452f;
+ color:white;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>🏫 AJIET CAMPUS NAVIGATION</h1>
+<p>Smart Campus Guide | Find Your Destination</p>
+</header>
+
+<nav>
+<a href="#home">Home</a>
+<a href="#find">Find Place</a>
+<a href="#mapsection">Campus Map</a>
+<a href="#places">Facilities</a>
+</nav>
+
+<div class="container">
+
+<section class="card" id="home">
+<h2>Welcome to AJIET Campus Guide</h2>
+<p>Find college buildings, departments and facilities easily.</p>
+<p>📍 Current Location</p>
+<p>🔎 Search Buildings</p>
+<p>🚶 Walking Directions</p>
+<button onclick="getLocation()">Get My Location</button>
+<p id="status">Location not detected.</p>
+</section>
+
+<section class="card" id="find">
+<h2>🔎 Find Your Destination</h2>
+
+<label>Search Department or Facility</label>
+<input id="search" placeholder="Search Library, CSE, Canteen..."
+oninput="filterPlaces()">
+
+<label>Select Destination</label>
+<select id="destination"></select>
+
+<button onclick="navigate()">Get Walking Directions</button>
+<p class="small">
+Directions open in Google Maps. Walking routes depend on available map data.
+</p>
+</section>
+
+<section class="card" id="mapsection">
+<h2>🗺️ AJIET Campus Map</h2>
+<div id="map"></div>
+<p class="small">
+Map shows the college area. Individual building locations must be verified.
+</p>
+</section>
+
+<section class="card" id="places">
+<h2>🏢 Campus Facilities</h2>
+<div id="placeList"></div>
+</section>
+
+<section class="card">
+<h2>📚 Academic Departments</h2>
+<div id="departments"></div>
+</section>
+
+<section class="card">
+<h2>📍 My Current Location</h2>
+<button onclick="getLocation()">Update GPS Location</button>
+<p id="coordinates">Waiting for GPS permission...</p>
+</section>
+
+</div>
+
+<footer>
+<p>AJIET Campus Navigation System</p>
+<p>NH-66, Kottara Chowki, Mangaluru, Karnataka 575006</p>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+// AJIET facilities based on the official college website.
+// Exact internal building coordinates need verification.
+
+const facilities = [
+ ["Main College Building","🏫"],
+ ["Entrance and Reception","🚪"],
+ ["Library","📚"],
+ ["Canteen","🍽️"],
+ ["Food Court","🥗"],
+ ["Auditorium","🎭"],
+ ["Central Computer Center","💻"],
+ ["Conference Hall","🏢"],
+ ["Board Room","🏢"],
+ ["Seminar Hall","🎤"],
+ ["Gym","🏋️"],
+ ["Sports Ground","⚽"],
+ ["Health Care / Sick Room","🏥"],
+ ["Placement Department","💼"],
+ ["Printer Xerox Stationery","🖨️"],
+ ["Language Lab","🗣️"],
+ ["Hostel","🏠"],
+ ["Bus Parking","🚌"],
+ ["GD Room","👥"],
+ ["Maintenance Office","🔧"]
+];
+
+const departments = [
+ "Civil Engineering",
+ "Computer Science and Engineering (CSE)",
+ "Electronics and Communication Engineering (ECE)",
+ "Information Science and Engineering (ISE)",
+ "Mechanical Engineering",
+ "Artificial Intelligence and Machine Learning (AIML)",
+ "Artificial Intelligence and Data Science (AIDS)",
+ "IoT and Cyber Security",
+ "Basic Science",
+ "MBA",
+ "MCA"
+];
+
+const collegeAddress =
+"AJ Institute of Engineering and Technology, NH-66, Kottara Chowki, Mangaluru, Karnataka 575006";
+
+let currentPosition = null;
+
+// Map
+const map = L.map("map").setView([12.9145,74.8560],16);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+ attribution:"© OpenStreetMap"
+}).addTo(map);
+
+// Search college map area
+const collegeMarker = L.marker([12.9145,74.8560])
+.addTo(map)
+.bindPopup("AJIET Campus - Kottara Chowki");
+
+// Load destinations
+function loadPlaces(){
+ const select=document.getElementById("destination");
+
+ facilities.forEach(item=>{
+  const option=document.createElement("option");
+  option.value=item[0];
+  option.textContent=item[1]+" "+item[0];
+  select.appendChild(option);
+ });
+
+ departments.forEach(item=>{
+  const option=document.createElement("option");
+  option.value=item;
+  option.textContent="🎓 "+item;
+  select.appendChild(option);
+ });
+
+ filterPlaces();
+}
+
+// Show facilities
+function filterPlaces(){
+ const query=document.getElementById("search").value.toLowerCase();
+ const list=document.getElementById("placeList");
+
+ list.innerHTML="";
+
+ facilities.filter(item=>
+  item[0].toLowerCase().includes(query)
+ ).forEach(item=>{
+  const div=document.createElement("div");
+  div.className="place";
+
+  const name=document.createElement("span");
+  name.textContent=item[1]+" "+item[0];
+
+  const btn=document.createElement("button");
+  btn.textContent="Navigate";
+  btn.onclick=()=>selectDestination(item[0]);
+
+  div.appendChild(name);
+  div.appendChild(btn);
+  list.appendChild(div);
+ });
+
+ const dept=document.getElementById("departments");
+ dept.innerHTML="";
+
+ departments.filter(d=>d.toLowerCase().includes(query))
+ .forEach(d=>{
+  const div=document.createElement("div");
+  div.className="place";
+
+  const name=document.createElement("span");
+  name.textContent="🎓 "+d;
+
+  const btn=document.createElement("button");
+  btn.textContent="Navigate";
+  btn.onclick=()=>selectDestination(d);
+
+  div.appendChild(name);
+  div.appendChild(btn);
+  dept.appendChild(div);
+ });
+}
+
+function selectDestination(name){
+ document.getElementById("destination").value=name;
+ document.getElementById("find").scrollIntoView({
+  behavior:"smooth"
+ });
+}
+
+// GPS
+function getLocation(){
+ if(!navigator.geolocation){
+  document.getElementById("status").textContent=
+  "GPS not supported by this browser.";
+  return;
+ }
+
+ document.getElementById("status").textContent=
+ "Getting your location...";
+
+ navigator.geolocation.getCurrentPosition(position=>{
+  const lat=position.coords.latitude;
+  const lon=position.coords.longitude;
+
+  currentPosition={lat,lon};
+
+  document.getElementById("status").textContent=
+  "Your current location is detected.";
+
+  document.getElementById("coordinates").textContent=
+  "Latitude: "+lat+" | Longitude: "+lon;
+
+  map.setView([lat,lon],18);
+
+  L.marker([lat,lon]).addTo(map)
+  .bindPopup("You are here").openPopup();
+
+ },error=>{
+  document.getElementById("status").textContent=
+  "GPS error: "+error.message;
+ });
+}
+
+// Navigation
+function navigate(){
+ const destination=
+ document.getElementById("destination").value;
+
+ if(!destination){
+  alert("Please select a destination.");
+  return;
+ }
+
+ const destinationAddress=
+ destination+", "+collegeAddress;
+
+ let url;
+
+ if(currentPosition){
+  url="https://www.google.com/maps/dir/?api=1"+
+  "&origin="+currentPosition.lat+","+currentPosition.lon+
+  "&destination="+encodeURIComponent(destinationAddress)+
+  "&travelmode=walking";
+ }else{
+  url="https://www.google.com/maps/search/?api=1"+
+  "&query="+encodeURIComponent(destinationAddress);
+ }
+
+ window.open(url,"_blank");
+}
+
+loadPlaces();
+
+</script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mangaluru City Bus Tracking</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
