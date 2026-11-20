@@ -1,2 +1,2 @@
-#campus navigation 
- to explore the campus 
+#hacking wifi
+education purpose only 
